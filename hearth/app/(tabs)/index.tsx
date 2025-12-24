@@ -6,9 +6,11 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
+import { Soundscape } from '@/components/Soundscape';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store';
 import { useThemeColor } from '@/components/Themed';
+import { useCampfirePresence } from '@/hooks/useCampfirePresence';
 import Colors from '@/constants/Colors';
 
 export default function CampfireScreen() {
@@ -16,6 +18,7 @@ export default function CampfireScreen() {
   const [isActive, setIsActive] = useState(false);
   const [currentBook, setCurrentBook] = useState<string | null>("The Hobbit"); // Placeholder
   const { session } = useStore();
+  const { presenceUsers } = useCampfirePresence();
   const tintColor = useThemeColor({}, 'tint');
 
   // Timer logic
@@ -54,13 +57,8 @@ export default function CampfireScreen() {
     setSeconds(0);
   };
 
-  // Mock presence data (in reality, this would come from Supabase Realtime)
-  const presenceUsers = [
-    { id: 1, initial: 'A', color: '#FF6B6B' },
-    { id: 2, initial: 'B', color: '#4ECDC4' },
-    { id: 3, initial: 'C', color: '#95E1D3' },
-    { id: 4, initial: 'D', color: '#FFD93D' },
-  ];
+  // Color palette for user avatars
+  const avatarColors = ['#FF6B6B', '#4ECDC4', '#95E1D3', '#FFD93D', '#A8E6CF', '#FFB6C1'];
 
   return (
     <ThemedView style={styles.container}>
@@ -80,18 +78,20 @@ export default function CampfireScreen() {
         {/* Presence avatars positioned around the flame */}
         {presenceUsers.map((user, index) => {
           // Position avatars in a circle around the flame
-          const angle = (index * 2 * Math.PI) / presenceUsers.length;
+          const angle = (index * 2 * Math.PI) / Math.max(presenceUsers.length, 1);
           const radius = 100;
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
+          const initial = user.username?.[0]?.toUpperCase() || '?';
+          const color = avatarColors[index % avatarColors.length];
 
           return (
             <View
-              key={user.id}
+              key={user.user_id}
               style={[
                 styles.avatar,
                 {
-                  backgroundColor: user.color,
+                  backgroundColor: user.avatar_url ? '#fff' : color,
                   left: `50%`,
                   top: `50%`,
                   transform: [
@@ -101,7 +101,11 @@ export default function CampfireScreen() {
                 }
               ]}
             >
-              <ThemedText style={styles.avatarText}>{user.initial}</ThemedText>
+              {user.avatar_url ? (
+                <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <ThemedText style={styles.avatarText}>{initial}</ThemedText>
+              )}
             </View>
           );
         })}
@@ -119,6 +123,9 @@ export default function CampfireScreen() {
       <View style={styles.timerContainer}>
         <ThemedText style={styles.timer}>{formatTime(seconds)}</ThemedText>
       </View>
+
+      {/* Soundscape */}
+      <Soundscape />
 
       {/* Controls */}
       <View style={styles.controls}>
@@ -183,6 +190,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   bookInfo: {
     flexDirection: 'row',
