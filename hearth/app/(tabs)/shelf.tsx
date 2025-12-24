@@ -19,6 +19,7 @@ export default function ShelfScreen() {
     const [searchResults, setSearchResults] = useState<OpenLibraryBook[]>([]);
     const [loading, setLoading] = useState(false);
     const [myBooks, setMyBooks] = useState<any[]>([]);
+    const [selectedBook, setSelectedBook] = useState<any>(null);
     const { session } = useStore();
 
     const tintColor = useThemeColor({}, 'tint');
@@ -46,6 +47,40 @@ export default function ShelfScreen() {
             setMyBooks(data || []);
         }
         setLoading(false);
+    };
+
+    const updateStatus = async (status: string) => {
+        if (!selectedBook) return;
+
+        const { error } = await supabase
+            .from('shelves')
+            .update({ status: status, updated_at: new Date().toISOString() })
+            .eq('id', selectedBook.id);
+
+        if (error) {
+            Toast.show({ type: 'error', text1: 'Update Failed', text2: error.message });
+        } else {
+            Toast.show({ type: 'success', text1: 'Status Updated', text2: `Moved to ${status.toUpperCase()}` });
+            setSelectedBook(null);
+            fetchMyShelf(); // Refresh
+        }
+    };
+
+    const deleteFromShelf = async () => {
+        if (!selectedBook) return;
+
+        const { error } = await supabase
+            .from('shelves')
+            .delete()
+            .eq('id', selectedBook.id);
+
+        if (error) {
+            Toast.show({ type: 'error', text1: 'Delete Failed', text2: error.message });
+        } else {
+            Toast.show({ type: 'success', text1: 'Book Removed', text2: 'Removed from your library.' });
+            setSelectedBook(null);
+            fetchMyShelf(); // Refresh
+        }
     };
 
     const handleSearch = async () => {
@@ -96,7 +131,7 @@ export default function ShelfScreen() {
     };
 
     const renderMyBook = ({ item }: { item: any }) => (
-        <View style={styles.myBookCard}>
+        <TouchableOpacity style={styles.myBookCard} onPress={() => setSelectedBook(item)}>
             <ExpoImage source={{ uri: item.book.cover_url }} style={styles.myBookCover} contentFit="cover" />
             <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{item.book.title}</ThemedText>
@@ -105,7 +140,7 @@ export default function ShelfScreen() {
                     <ThemedText style={styles.statusText}>{item.status.toUpperCase()}</ThemedText>
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 
     const getStatusColor = (status: string) => {
@@ -162,6 +197,35 @@ export default function ShelfScreen() {
                         contentContainerStyle={{ paddingBottom: 100 }}
                     />
                 )
+            )}
+            {/* Book Detail Modal overlay */}
+            {selectedBook && (
+                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+                    <ThemedView style={styles.modalContent}>
+                        <ThemedText type="subtitle" style={{ marginBottom: 4, textAlign: 'center' }}>{selectedBook.book.title}</ThemedText>
+                        <ThemedText style={{ marginBottom: 20, opacity: 0.7, textAlign: 'center' }}>Update Status</ThemedText>
+
+                        <View style={styles.statusButtons}>
+                            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#78716C' }]} onPress={() => updateStatus('tbr')}>
+                                <ThemedText style={styles.btnText}>TBR</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: Colors.cozy.flame }]} onPress={() => updateStatus('reading')}>
+                                <ThemedText style={styles.btnText}>Reading</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: Colors.cozy.grass }]} onPress={() => updateStatus('read')}>
+                                <ThemedText style={styles.btnText}>Read</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#ff4444', marginTop: 16 }]} onPress={deleteFromShelf}>
+                            <ThemedText style={styles.btnText}>Remove from Shelf</ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={{ marginTop: 20, padding: 10 }} onPress={() => setSelectedBook(null)}>
+                            <ThemedText>Close</ThemedText>
+                        </TouchableOpacity>
+                    </ThemedView>
+                </View>
             )}
         </ThemedView>
     );
@@ -220,5 +284,47 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: 'white',
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+    },
+    modalContent: {
+        width: '80%',
+        padding: 24,
+        borderRadius: 20,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    statusButtons: {
+        flexDirection: 'row',
+        gap: 8,
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+    },
+    modalBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        minWidth: 80,
+        alignItems: 'center',
+    },
+    btnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
     }
 });
