@@ -1,0 +1,19 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Run at 00:00 every Monday and Thursday
+    - cron: '0 0 * * 1,4'
+  workflow_dispatch: # Allows manual run
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Project
+        run: |
+          # Simple curl request to the project URL (REST endpoint)
+          # We request the 'profiles' table with limit 1 just to wake it up
+          curl -f -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=count&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"

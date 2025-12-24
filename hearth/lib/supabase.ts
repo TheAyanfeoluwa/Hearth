@@ -8,7 +8,26 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: {
+      getItem: (key) => {
+        if (typeof window !== 'undefined') {
+          return AsyncStorage.getItem(key);
+        }
+        return Promise.resolve(null);
+      },
+      setItem: (key, value) => {
+        if (typeof window !== 'undefined') {
+          return AsyncStorage.setItem(key, value);
+        }
+        return Promise.resolve();
+      },
+      removeItem: (key) => {
+        if (typeof window !== 'undefined') {
+          return AsyncStorage.removeItem(key);
+        }
+        return Promise.resolve();
+      },
+    },
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
