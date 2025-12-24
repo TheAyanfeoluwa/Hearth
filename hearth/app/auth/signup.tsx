@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, View, Alert, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
@@ -20,40 +21,46 @@ export default function SignupScreen() {
 
     async function signUpWithEmail() {
         if (!username) {
-            Alert.alert('Please enter a username');
+            Toast.show({
+                type: 'error',
+                text1: 'Username Required',
+                text2: 'Please enter a username to continue.'
+            });
             return;
         }
         setLoading(true);
 
+        // Pass username in metadata so the Trigger can pick it up
         const { data: { session, user }, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    username: username,
+                },
+            },
         });
 
         if (error) {
-            Alert.alert(error.message);
+            Toast.show({
+                type: 'error',
+                text1: 'Sign Up Failed',
+                text2: error.message
+            });
             setLoading(false);
             return;
         }
 
-        if (session && user) {
+        if (session) {
             setSession(session);
-            // Create Profile
-            const { error: profileError } = await supabase.from('profiles').insert({
-                id: user.id,
-                username: username,
-                avatar_url: '', // Default or random
-            });
-
-            if (profileError) {
-                console.error('Error creating profile:', profileError);
-                // Non-blocking, can retry later or rely on trigger if present
-            }
-
             router.replace('/(tabs)');
         } else {
-            Alert.alert('Please check your inbox for email verification!');
-            setLoading(false); // Stay here? or go to login?
+            Toast.show({
+                type: 'success',
+                text1: 'Check your email!',
+                text2: 'We sent you a verification link.'
+            });
+            setLoading(false);
         }
     }
 

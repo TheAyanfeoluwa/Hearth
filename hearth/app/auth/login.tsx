@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, Image, View, Alert, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
@@ -26,9 +27,18 @@ export default function LoginScreen() {
         });
 
         if (error) {
-            Alert.alert(error.message);
+            Toast.show({
+                type: 'error',
+                text1: 'Login Failed',
+                text2: error.message
+            });
             setLoading(false);
         } else {
+            Toast.show({
+                type: 'success',
+                text1: 'Welcome Home',
+                text2: 'Gather round the fire...'
+            });
             setSession(data.session);
             // Navigate to home logic is handled by auth state usually, 
             // but we can manually replace route for now

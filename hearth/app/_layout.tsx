@@ -10,6 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store';
 import { View, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -101,6 +102,7 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
       </Stack>
+      <Toast />
     </ThemeProvider>
   );
 }
